@@ -117,7 +117,12 @@ Question 14: There is a YARA file on the computer. Inspect the file. What is the
 name of the author?
 
 The most natural first reaction is to do a keyword search for ".yar", which
-yields, among other things, a file
+yields, among other things, a single file whose name actually contains the .yar
+extension (although it is in fact a .lnk file). Reading through the metadata,
+the name and location of the file can be found. While simply googling the name
+of the directory it can be found in will quickly yield the author's name, one
+can also look in the mentioned user's directories to find what can be found with
+a Google search. There is a readme there which contains the author's name.
 
 --------------------------------------------------------------------------------
 Question 15: One of the users wanted to exploit a domain controller with an 
