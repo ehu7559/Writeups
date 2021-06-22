@@ -1,9 +1,13 @@
-Briefing:
+This is a writeup for the "Disk Analysis & Autopsy" TryHackMe room: 
+https://tryhackme.com/room/autopsy2ze0
 
-This is a writeup for the TryHackMe room: https://tryhackme.com/room/autopsy2ze0
-and is, to the best of this investigator's knowledge, correct. The investigator
-would like to thank the various members of the TryHackMe discord server, the
-room's creator heavenraiza, and the TryHackMe staff.
+NAME: "Disk Analysis & Autopsy"
+DESCRIPTION: 
+"Ready for a challenge? Use Autopsy to investigate artifacts from a disk image."
+
+STATUS: 
+Task 1, Questions 1-14 Complete.
+Task 1, Question 15 not solved yet. I promise to finish it soon.
 
 --------------------------------------------------------------------------------
 Task 1:
@@ -40,7 +44,7 @@ Question 5: What was the IP address of the computer?
 
 Exploring around the directories reveals the network monitoring tool Look@LAN in
 the Program Files (x86) directory. Looking at the irunin.ini file, one can find
-the IP address listed under %LANIP%=[redacted]
+the IP address listed under %LANIP%=[redacted].
 
 --------------------------------------------------------------------------------
 Question 6: What was the MAC address of the computer?
@@ -50,8 +54,20 @@ under %LANNIC%=[redacted]. This could have also been found by searching for the
 term "NIC".
 
 --------------------------------------------------------------------------------
-Question 7: 
+Question 7: Name the network cards on this computer.
 
+Looking up the location where the network card name is stored actually yields a
+number of OTHER autopsy tutorials if one includes "autopsy" in the search. These
+tutorials were useful in that they explained that the file is stored in the path
+C:\WINDOWS\system32\config\software\Microsoft\Windows NT\CurrentVersion\NetworkCards\
+
+Autopsy and Windows seem to represent the SOFTWARE directory as a registry hive.
+Fortunately, the path can be pursued by selecting "SOFTWARE" as the file and
+using the "Application" tab that pops up below the listing window to traverse
+the path to the end. Clicking our way down, we see two registers:
+
+"ServiceName" and "Description". Description is human-readable and also matches
+the format requested by the question.
 --------------------------------------------------------------------------------
 Question 8: What is the name of the network monitoring tool?
 
@@ -110,7 +126,19 @@ indexed text of the file. Reading the text in the file, the flag can be found.
 Question 13: 2 hack tools focused on passwords were found in the system. What 
 are the names of these tools? (alphabetical order)
 
-Reading through the 
+A perusal of the Program Files directories didn't yield anything of note. Tools,
+however, are downloaded, so it may be useful to check the downloads. This can be
+done either by checking each user's individual Downloads directories, but an
+easier way would be to check Results->Extracted Content->Web Downloads. This of
+course relies on the user's ability to recognize the names of various tools. One
+of them can be found there. Another one can be found by looking through the
+Results->Extracted Content->Run Programs path. Sorting by name to cluster the
+various Windows basic processes, the other password cracking tool can also be
+found. This is made much easier by using the alphabetical ordering and name
+length clues from the hint.
+
+On a side note, the downloads seem to suggest that sivapriya enjoys pottery. Not
+at all relevant to any of the questions, but still cool to explore.
 
 --------------------------------------------------------------------------------
 Question 14: There is a YARA file on the computer. Inspect the file. What is the
@@ -129,8 +157,15 @@ Question 15: One of the users wanted to exploit a domain controller with an
 MS-NRPC based exploit. What is the filename of the archive that you found? 
 (include the spaces in your answer) 
 
+[WORK IN PROGRESS]
+
 --------------------------------------------------------------------------------
-Remarks: Probably my favorite room of the Cyber Defender path. The room also has
+Remarks: 
+
+The investigator would like to thank the various members of the TryHackMe 
+discord server, the room's creator heavenraiza, and the TryHackMe staff.
+
+Probably my favorite room of the Cyber Defender path. The room also has
 an incredibly "alive" and realistic feel to it, a result of the various little
 details here and there that add a bit of a personal touch to the target. The use
 of little images like sivapriya's pictures of pottery at a bazaar, the names and
@@ -138,4 +173,6 @@ geographic data all pointing to a coherent location, and other little personal
 touches of each user gives the student the impression that the people they are
 investigating are real and have real lives that they, through Autopsy and the
 disk image, are able to peer into. Thanks again to heavenraiza for a wonderful
-experience.
+experience. I hope to 
+
+- Erica
