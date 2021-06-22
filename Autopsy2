@@ -1,14 +1,18 @@
+Introduction:
+
 This is a writeup for the "Disk Analysis & Autopsy" TryHackMe room: 
 https://tryhackme.com/room/autopsy2ze0
+
+This writeup will assume basic knowledge of Windows, directory structures, and
+Autopsy based on the previous Autopsy room.  
+--------------------------------------------------------------------------------
+Overview:
 
 NAME: "Disk Analysis & Autopsy"
 DESCRIPTION: 
 "Ready for a challenge? Use Autopsy to investigate artifacts from a disk image."
 
-STATUS: 
-Task 1, Questions 1-14 Complete.
-Task 1, Question 15 not solved yet. I promise to finish it soon.
-
+STATUS: Complete
 --------------------------------------------------------------------------------
 Task 1:
 --------------------------------------------------------------------------------
@@ -72,7 +76,8 @@ the format requested by the question.
 Question 8: What is the name of the network monitoring tool?
 
 This was found during the previous stages of the investigation, and can simply
-be stated from knowledge.
+be stated from knowledge. The name alone should be more than enough to tip you
+off as to its purpose. (See the tool mentioned in Questions 5 and 6)
 
 --------------------------------------------------------------------------------
 Question 9: A user bookmarked a Google Maps location. What are the coordinates 
@@ -157,8 +162,14 @@ Question 15: One of the users wanted to exploit a domain controller with an
 MS-NRPC based exploit. What is the filename of the archive that you found? 
 (include the spaces in your answer) 
 
-The answer can be found by checking through the downloads, recently used files,
-and recently run programs.
+Those who have encountered Eternal Blue and Zerologon will likely immediately
+search for the keyword 'Zerologon'. This gives, among other things, a .lnk file
+referring to the archive in question. Quickly guessing around common archive
+extensions is sufficient to get the name right.
+
+Addendum:
+The answer can apparently also be found by checking through the downloads, 
+recently used files, and recently run programs. 
 (Credit to user morjan 451#6573 on the TryHackMe discord!)
 
 --------------------------------------------------------------------------------
@@ -179,5 +190,7 @@ experience.
 
 This is my first writeup and I hope you found it helpful. It feels very surreal
 to be submitting it to a community whose intellects dwarf my own in every way.
+While others may see this as a small achievement, it would mean a lot to me to
+get some feedback! 
 
-- Erica
+- Erica (@ericadoodles on the TryHackMe Discord!)
