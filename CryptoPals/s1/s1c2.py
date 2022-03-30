@@ -20,4 +20,5 @@ def buf_xor(a_hex, b_hex):
     for i in range(len(a_bytes)):
         c_bytearr.append(a_bytes[i] ^ b_bytes[i])
     return bytes(c_bytearr)
-    
+
+'''the kid don't play'''

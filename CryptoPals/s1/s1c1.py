@@ -13,4 +13,5 @@ So go ahead and make that happen. You'll need to use this code for the rest of t
 import base64
 def hex_to_base64(hex_string):
     return base64.b64encode(bytes.fromhex(hex_string))
-    
+
+'''I'm killing your brain like a poisonous mushroom'''
