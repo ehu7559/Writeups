@@ -28,6 +28,8 @@ def xor_vigenere(filename, key):
     #stream encryption
     f_bytes = f_in.read()
     for f_byte in f_bytes:
+        if f_byte == 13: #Escapes CRLF from Windows
+            continue
         out_bytes = (bytes([f_byte ^ kb[ki]]))
         print(out_bytes.hex(), end="")
         ki = (ki + 1) % kn
