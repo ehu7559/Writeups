@@ -1,36 +1,46 @@
+#CONSTANTS AND IMPORTS
 import base64
+KEY_SIZE_LIMIT = 100
+FREQS = {'e': 120, 't': 90, 'a': 80, 'i': 80, 'n': 80, 'o': 80, 's': 80, 'h': 64, 'r': 62, 'd': 44, 'l': 40, 'u': 34, 'c': 30, 'm': 30, 'f': 25, 'w': 20, 'y': 20, 'g': 17, 'p': 17, 'b': 16, 'v': 12, 'k': 8, 'q': 5, 'j': 4, 'x': 4, 'z': 2}
 
-def hamming_dist_byte(b1, b2):
-    count = 0
-    n1 = int(b1)
-    n2 = int(b2)
-    for i in [128, 64, 32, 16, 8, 4, 2, 1]:
-        count += 0 if (n1 >= i) == (n2 >= i) else 1
-        n1 = n1 % i
-        n2 = n2 % i
-    return count
+#Simple summation method. should work for texts of the same length 
+def score_text(data):
+    points = 0
+    for i in data:
+        if i in range(128) and chr(i) in FREQS.keys():
+            points += FREQS[chr(i)]
+    return points
 
-def hamming_distance(stream1,stream2):
-    count = 0
-    mut_length = min(len(stream1), len(stream2))
-    length_diff = abs(len(stream1) - len(stream2))
-    for i in range(mut_length):
-        count += hamming_dist_byte(stream1[i], stream2[i])
-    
-    return count + 8 * length_diff
+def hamming_distance(buf_a, buf_b):
+    output = 0
+    for j in range(min(len(buf_a), len(buf_b))):
+        n1 = int(buf_a[j])
+        n2 = int(buf_b[j])
+        for i in [128, 64, 32, 16, 8, 4, 2, 1]:
+            output += 0 if (n1 >= i) == (n2 >= i) else 1
+            n1 = n1 % i
+            n2 = n2 % i
+    output += 8 * abs(len(buf_a) - len(buf_b))
+    return output
 
-test1_status = "PASSED" if hamming_distance(bytes("this is a test", "ascii"), bytes("wokka wokka!!!","ascii")) == 37 else "FAILED"
-print("TEST HAMMING DISTANCE CHECK: "+test1_status)
-
+#this function is incredibly slow, but yields a far higher confidence in the
+#Kasiski analysis. It is nowhere near as sensitive to the rather arbitrary
+#nature of the data compared to the suggested method. 
 def score_key_length(data, length):
-    return hamming_distance(data[0:length], data[length:2*length]) / length
+    avg_hamming_score = 0
+    for i in range(len(data) // length):
+        for j in range(i + 1, len(data) // length):
+            avg_hamming_score += hamming_distance(data[length * i: length * (i + 1)], data[length * j: length * (j + 1)])
+    return 2 * avg_hamming_score / ((len(data) // length) * ((len(data) // length) - 1) * length)
 
+#Looping mechanism for guessing key length
 def guess_key_length(data):
+    '''(bytes) -> int'''
     if len(data) < 2:
         return len(data)    
     guess = 1
-    guess_score = len(data) * 8     #Maximum hamming distance (bitwise not of every bit.)
-    for i in range(1,len(data)//2):
+    guess_score = 8     #Literally every bit is different
+    for i in range(1,(min(len(data)//2, KEY_SIZE_LIMIT))):
         sc = score_key_length(data,i)
         if sc < guess_score: #Prefer shorter key size (I think it would make for more reliable frequency analysis)
             print("Length: "+str(i) + " \tScore: "+ str(sc))
@@ -38,128 +48,80 @@ def guess_key_length(data):
             guess_score = sc    
     return guess
 
+#Striping mechanism 
+def stripe(data, num_blocks):
+    output = []
+    
+    #Initialize
+    for i in range(num_blocks):
+        output.append(bytearray())
+    
+    #Stripe out data
+    for i in range(len(data)):
+        output[i%num_blocks].append(data[i])
+    
+    return output
+
+def destripe(stripe_arr):
+    output = bytearray()
+    #compute length
+    total_bytes = 0
+    for s in stripe_arr:
+        total_bytes += len(s)
+    #de-stripe the list
+    for i in range(total_bytes):
+        output.append((stripe_arr[i%len(stripe_arr)])[i//len(stripe_arr)])
+    return output
+
+#Guesses a single byte out 
+def guess_byte(data_stripe):
+    gb = 0
+    gsc = 0 #Saving this value saves computational time from being used to calculate scores over and over
+    for i in range(128): #Since ASCII is used, only 0->128 need be used. Minor speedup, but still good.
+        isc = score_text(decrypt(data_stripe, [i]))
+        if  isc > gsc:
+            gb = i
+            gsc = isc
+    return gb
+
+#Key-guessing function
+def guess_key(data, length):
+    blocks = stripe(data, length)
+    kb = bytearray()
+    for bl in blocks:
+        kb.append(guess_byte(bl))
+    return bytes(kb)
+
+'''
+Lightweight decryption feature
+Can be used for single-character purposes as well.
+'''
+def decrypt(data, key):
+    plain = bytearray()    
+    for i in range(len(data)):
+        plain.append(int((data[i]) ^ (key[i % len(key)])))
+    return bytes(plain)
+
+def crack(data):
+    print("Guessing Key Length...")
+    key_length_guess = guess_key_length(data)
+    print("Key Length: " + str(key_length_guess))
+    print("\nGuessing Key:")
+    key_guess = guess_key(data, key_length_guess)
+    print("Key: " + str(key_guess))
+    print("\nDecrypting...")
+    return decrypt(data, key_guess).decode('ascii')
+
 def retrieve_data(filename):
+    '''(string) -> bytes'''
     f = open(filename, "r")
     ls = f.readlines()
     f.close()
     sixtyfour = ""
     for l in ls:
         sixtyfour += l.strip()
-    #print(sixtyfour)
-    return base64.b64decode(sixtyfour)
-
+    return bytes(base64.b64decode(sixtyfour))
+    
+#Retrieve data from the challenge file.
 ciphertext = retrieve_data("6.txt")
-cipherhex = ciphertext.hex()
-print("CIPHERTEXT LENGTH: " + str(len(ciphertext)))
-key_guess_length = guess_key_length(ciphertext)
-print("ESTIMATED KEY LENGTH: " + str(key_guess_length))
-
-def get_blocks(text, num_blocks):
-    if type(text) != bytes:
-        return get_blocks(bytes(text, "ascii"), num_blocks)
-    output = []
-    for i in range(num_blocks):
-        output.append(bytearray())
-    for i in range(len(text)):
-        output[i%num_blocks].append(text[i])
-    for i in range(len(output)):
-        output[i] = bytes(output[i]) #Convert from bytearray to bytes
-    return output
-
-def merge_blocks(blocks):
-    #Compute length:
-    total_len = 0
-    for b in blocks:
-        total_len += len(b)
-    #Get output
-    output = bytearray()
-    for i in range(total_len):
-        block = i % len(blocks)
-        index = i // len(blocks)
-        output.append((blocks[block])[index])
-    return bytes(output)
-
-#print(cipherhex)
-stripe_test_status = "PASSED" if ciphertext == merge_blocks(get_blocks(ciphertext, 5)) else "FAILED"
-print("TESTING STRIPING: " + stripe_test_status)
-
-#helper-method to ensure alphabetical characters only
-forbiddenchars = ""
-restrictedchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,\'\"!/:?\n@#$%^&*()-_=+"
-musthavechars = ""
-scores = {'e': 120, 't': 90, 'a': 80, 'i': 80, 'n': 80, 'o': 80, 's': 80, 'h': 64, 'r': 62, 'd': 44, 'l': 40, 'u': 34, 'c': 30, 'm': 30, 'f': 25, 'w': 20, 'y': 20, 'g': 17, 'p': 17, 'b': 16, 'v': 12, 'k': 8, 'q': 5, 'j': 4, 'x': 4, 'z': 2}
-
-#Simple summation method. should work for texts of the same length 
-def sanitize(txt):
-    output = ""
-    for c in txt.lower():
-        if c in scores.keys():
-            output += c
-    return output
-
-def sum_score(txt):
-    if not printable(txt):
-        return 0
-    points = 0
-    for i in sanitize(txt.decode('ascii')):
-        points += scores[i]
-    return points
-
-def printable(raw_text):
-    for i in bytes(raw_text):
-        #if i not in range(128) or chr(i) in forbiddenchars or chr(i) not in restrictedchars:
-        if i not in range(32,128):
-            return False
-    '''for i in musthavechars:
-        if i not in raw_text.decode('utf8'):
-            return False'''
-    return True
-
-def decrypt(cipherbytes, keybyte):
-    output = bytearray()
-    for b in cipherbytes:
-        output.append(b ^ keybyte)
-    return bytes(output)
-
-def guess_key_byte(raw_text):
-    guess = 0
-    guess_score = 0
-    for i in range(256):
-        plain_guess = decrypt(raw_text, i)
-        sc = plain_guess.count(ord("e")) + plain_guess.count(ord("E"))
-        if sc > guess_score:
-            print(str(i) + "\t -> " + str(sc))
-            guess = i
-            guess_score = sc
-    if guess_score == 0:
-        print("NO KEY FOUND")
-    return guess
-
-def guess_key(data, length):
-    output = []
-    for cipherblock in get_blocks(data, length):
-        output.append(guess_key_byte(cipherblock))
-    return bytes(output)
-
-full_key_guess = guess_key(ciphertext, key_guess_length)
-print("KEY: " + str(full_key_guess))
-
-def devig(data, key_bytes):
-    keylen = len(key_bytes)
-    plain_blocks = []
-    for cipher_block in get_blocks(data, keylen):
-        plain_blocks.append(decrypt(cipher_block, key_bytes[len(plain_blocks)]))
-    return merge_blocks(plain_blocks)
-
-def slowvig(data, key_bytes):
-    keylen = len(key_bytes)
-    output = bytearray()
-    for i in range(len(data)):
-        output.append(data[i] ^ key_bytes[i%keylen])
-    return bytes(output)
-test_decrypt_status = "PASSED" if devig(ciphertext, full_key_guess).decode("utf8") == slowvig(ciphertext, full_key_guess).decode("utf8") else "FAILED"
-print("TESTING DECRYPTION: " + test_decrypt_status)
-plain_raw = devig(ciphertext, full_key_guess)
-plain_text = devig(ciphertext, full_key_guess).decode("utf8")
-print("PLAINTEXT:\n" + str(devig(ciphertext, full_key_guess).decode("utf8")))
-print("PLAINTEXT LENGTH: " + str(len(plain_raw)))
+print(crack(ciphertext))
