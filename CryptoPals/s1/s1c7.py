@@ -25,16 +25,36 @@ def shift_rows(block):
         output[i] = block[SR_TABLE[i]]
     return bytes(output)
 
+#HELPER METHOD TO MULTIPLY FOR MIX_COLUMNS
+def multiply(b,a):
+    if b == 1:
+        return a
+    tmp = (a<<1) & 0xff
+    if b == 2:
+        return tmp if a < 128 else tmp^0x1b
+    if b == 3:
+        return tmp^a if a < 128 else (tmp^0x1b)^a
+
 #Mix Columns
 def mix_columns(block):
     output = bytearray(16)
-    #TODO: IMPLEMENT
+    mar = [2, 1, 1, 3, 3, 2, 1, 1, 1, 3, 2, 1, 1, 1, 3, 2]
+
+    for i in range(16):
+        row = i % 4
+        col = i // 4
+        folder = bytearray(4)
+        for j in range(4):
+            folder[j] = multiply(mar[j * 4 + row], block[col * 4 + j])
+        output[i] = folder[0] ^ folder[1] ^ folder[2] ^ folder[3]
+
     return bytes(output)
 
 #Add Round Key
 def add_round_key(block, round_key):
-    output = bytearray(4 * ROUNDS[len(round_key)])
-    #TODO: IMPLEMENT
+    output = bytearray(16)
+    for i in range(16):
+        output[i] = block[i] ^ round_key[i]
     return bytes(output)
 
 #Inverse sub bytes
@@ -53,30 +73,43 @@ def inv_shift_rows(block):
 
 #Inverse mix columns
 def inv_mix_columns(block):
-    output = bytearray(16)
-    for i in range(16):
-        pass
-    return output
-
+    '''Inverse of MixColumns, takes advantage of math'''
+    return mix_columns(mix_columns(mix_columns(block)))
+ 
 #Invert add round key
 def inv_add_round_key(block, round_key):
     return add_round_key(block, round_key)
 
-#Padding function (Currently using NULL padding)
+#PKCS7 Padding as per RFC5652. For ciphertexts with perfect block length,
+#simply call this on an empty bytearray.
 def pad_block(data):
-    output = bytearray(16)
-    for i in range(len(data)):
-        output[i] = data[i]
+    '''Pad the last block.'''
+    output = bytearray(data)
+    gap = 16 - len(data)
+    for i in range(gap):
+        output.append(gap) #Add padding bytes.
     return output
 
 #Round Key Extension Function
-def get_round_keys():
-    pass
+def run_key_schedule(keybytes):
+    #initialize key schedule column
+    key_columns = [keybytes[0:4], keybytes[4:8], keybytes[8:12], keybytes[12:16]]
+    for i in range(ROUNDS[BLOCK_SIZE_BITS]):
+        if i%4 == 0:
+            pass #Magic shit
+        else:
+            pass #Compute recursively
+    return key_columns
+
+def encrypt_block(block, round_keys):
+    output = bytearray(block)
+    for i in range(ROUNDS[BLOCK_SIZE_BITS]):
+        output = add_round_key(mix_columns(shift_rows(sub_bytes(output))), round_keys[i])
+    return output
 
 #Main Encryption Function
 def encrypt(data):
     #BLOCKS
-
     #FINAL (With Padding)
 
     #RETURN DATA
@@ -85,7 +118,7 @@ def encrypt(data):
 #Main Decryption Function
 def decrypt(data):
     #BLOCKS
-
+    
     #FINAL (With padding)
 
     #RETURN DATA
