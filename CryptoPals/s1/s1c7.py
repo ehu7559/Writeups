@@ -1,4 +1,10 @@
 #AES-ECB Implementation
+'''
+This was done by hand for educational reasons. This is by no means an efficient
+implementation (although efforts have been made to make this as streamlined as
+possible), but it is a very understandable one. One can improve this by first
+changing to a compiled language like C and then
+'''
 
 #Constants and lookup tables
 ROUNDS = {128 : 10, 192 : 12, 256 : 14}
@@ -101,12 +107,12 @@ def run_key_schedule(keybytes):
             pass #Compute recursively
     return key_columns
 
-def encrypt_block(block, round_keys):
-    output = bytearray(block)
-    for i in range(ROUNDS[BLOCK_SIZE_BITS]):
-        output = add_round_key(mix_columns(shift_rows(sub_bytes(output))), round_keys[i])
-    return output
 
+#Block Encryption Function
+def encrypt_block(block):
+    if len(block) < BLOCK_SIZE_BYTES:
+        return encrypt_block(pad_block(block))
+    pass
 #Main Encryption Function
 def encrypt(data):
     #BLOCKS
@@ -118,7 +124,6 @@ def encrypt(data):
 #Main Decryption Function
 def decrypt(data):
     #BLOCKS
-    
     #FINAL (With padding)
 
     #RETURN DATA
