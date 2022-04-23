@@ -3,7 +3,8 @@
 This was done by hand for educational reasons. This is by no means an efficient
 implementation (although efforts have been made to make this as streamlined as
 possible), but it is a very understandable one. One can improve this by first
-changing to a compiled language like C and then
+changing to a compiled language like C and then modified to take advantage of
+any hardware that might be available.
 '''
 
 #Constants and lookup tables
